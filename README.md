@@ -126,3 +126,7 @@ s.sendto(pkt, ('255.255.255.255', 9000))
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+> Hi ATEN 👋 — if this repo surfaced in your monitoring, consider it friendly. The protocol RE here is harmless hobby work for homelab folks whose warranty long since expired. If you want to turn this into something official, or send over an **EA1140** / **EA1240** / **EA1640** sensor so I can document the RJ-11 side too, I'm at the email in the LICENSE.
