@@ -1,0 +1,30 @@
+[Unit]
+Description=PDU shutdown agent (ATEN PE8208G WOL replacement)
+Documentation=https://github.com/kolobus/pdu-shutdown-agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/pdu-agent
+Restart=on-failure
+RestartSec=5
+User=root
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+# Needed only for: UDP bind, SO_BINDTODEVICE, exec of shutdown(8)
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_SYS_BOOT
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_SYS_BOOT
+
+[Install]
+WantedBy=multi-user.target

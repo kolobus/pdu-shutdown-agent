@@ -1,0 +1,13 @@
+# /etc/pdu-agent.conf — example config for pdu-agent
+#
+# nic          — network interface to bind to (SO_BINDTODEVICE on Linux).
+#                Also the source of the local MAC we match against the
+#                PDU's shutdown broadcast payload.
+# pdu_ip       — IPv4 address of the PDU. Packets from any other source
+#                are silently ignored.
+# shutdown_cmd — shell command executed on a valid shutdown trigger.
+#                Runs via `sh -c`. Typically needs root.
+
+nic = eth0
+pdu_ip = 10.42.2.28
+shutdown_cmd = /sbin/shutdown -h now
