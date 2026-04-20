@@ -1,0 +1,115 @@
+version: 2
+
+project_name: pdu-agent
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: pdu-agent
+    main: .
+    binary: pdu-agent
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
+    files:
+      - README.md
+      - LICENSE
+      - pdu-agent.conf.example
+      - systemd/pdu-agent.service
+
+checksum:
+  name_template: "SHA256SUMS"
+
+nfpms:
+  - id: pdu-agent
+    package_name: pdu-agent
+    vendor: "Mihail Fedorov"
+    homepage: https://github.com/kolobus/pdu-shutdown-agent
+    maintainer: "Mihail Fedorov <mihail@fedorov.net>"
+    description: |-
+      Host-side agent that listens for the ATEN PE8208G shutdown broadcast
+      on UDP :9000 and runs a configurable shell command (by default
+      `shutdown -h now`) when the target MAC matches the local NIC. A
+      clean-room replacement for ATEN's proprietary Safe Shutdown agent.
+    license: MIT
+    section: net
+    priority: optional
+    formats:
+      - deb
+      - rpm
+      - apk
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
+    contents:
+      - src: systemd/pdu-agent.service
+        dst: /lib/systemd/system/pdu-agent.service
+      - src: pdu-agent.conf.example
+        dst: /etc/pdu-agent.conf.example
+      - src: README.md
+        dst: /usr/share/doc/pdu-agent/README.md
+      - src: LICENSE
+        dst: /usr/share/doc/pdu-agent/LICENSE
+    scripts:
+      postinstall: scripts/postinstall.sh
+      preremove: scripts/preremove.sh
+      postremove: scripts/postremove.sh
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^test:"
+      - "^ci:"
+      - "Merge pull request"
+
+release:
+  github:
+    owner: kolobus
+    name: pdu-shutdown-agent
+  prerelease: auto
+  draft: false
+  header: |-
+    ## Install
+
+    ### Debian / Ubuntu
+    ```bash
+    wget https://github.com/kolobus/pdu-shutdown-agent/releases/download/{{ .Tag }}/pdu-agent_{{ .Version }}_linux_amd64.deb
+    sudo apt install ./pdu-agent_{{ .Version }}_linux_amd64.deb
+    sudo $EDITOR /etc/pdu-agent.conf   # copy from /etc/pdu-agent.conf.example
+    sudo systemctl enable --now pdu-agent
+    ```
+
+    ### RHEL / Rocky / Fedora
+    ```bash
+    sudo rpm -i https://github.com/kolobus/pdu-shutdown-agent/releases/download/{{ .Tag }}/pdu-agent_{{ .Version }}_linux_amd64.rpm
+    sudo systemctl enable --now pdu-agent
+    ```
+
+    ### Alpine
+    ```bash
+    wget https://github.com/kolobus/pdu-shutdown-agent/releases/download/{{ .Tag }}/pdu-agent_{{ .Version }}_linux_amd64.apk
+    sudo apk add --allow-untrusted ./pdu-agent_{{ .Version }}_linux_amd64.apk
+    ```
+
+    ### Raw binary
+    ```bash
+    curl -L https://github.com/kolobus/pdu-shutdown-agent/releases/download/{{ .Tag }}/pdu-agent_{{ .Version }}_linux_amd64.tar.gz | sudo tar -xzC /usr/local/bin pdu-agent
+    ```

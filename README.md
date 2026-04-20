@@ -49,28 +49,60 @@ shutdown_cmd = /sbin/shutdown -h now    # runs via `sh -c` when triggered
 
 Every trigger is logged with source IP and target MAC.
 
-## Build
+## Install
+
+Prebuilt packages are published on every tagged release via goreleaser. Pick the format matching your distro.
+
+### Debian / Ubuntu
+
+```bash
+wget https://github.com/kolobus/pdu-shutdown-agent/releases/latest/download/pdu-agent_<VERSION>_linux_amd64.deb
+sudo apt install ./pdu-agent_<VERSION>_linux_amd64.deb
+sudo cp /etc/pdu-agent.conf.example /etc/pdu-agent.conf
+sudo $EDITOR /etc/pdu-agent.conf
+sudo systemctl enable --now pdu-agent
+```
+
+### RHEL / Rocky / Fedora
+
+```bash
+sudo rpm -i https://github.com/kolobus/pdu-shutdown-agent/releases/latest/download/pdu-agent_<VERSION>_linux_amd64.rpm
+sudo cp /etc/pdu-agent.conf.example /etc/pdu-agent.conf
+sudo $EDITOR /etc/pdu-agent.conf
+sudo systemctl enable --now pdu-agent
+```
+
+### Alpine
+
+```bash
+wget https://github.com/kolobus/pdu-shutdown-agent/releases/latest/download/pdu-agent_<VERSION>_linux_amd64.apk
+sudo apk add --allow-untrusted ./pdu-agent_<VERSION>_linux_amd64.apk
+```
+
+### Raw binary (any Linux)
+
+```bash
+curl -L https://github.com/kolobus/pdu-shutdown-agent/releases/latest/download/pdu-agent_<VERSION>_linux_amd64.tar.gz \
+  | sudo tar -xzC /usr/local/bin pdu-agent
+sudo curl -o /etc/pdu-agent.conf https://raw.githubusercontent.com/kolobus/pdu-shutdown-agent/main/pdu-agent.conf.example
+sudo curl -o /etc/systemd/system/pdu-agent.service https://raw.githubusercontent.com/kolobus/pdu-shutdown-agent/main/systemd/pdu-agent.service
+sudo systemctl daemon-reload && sudo systemctl enable --now pdu-agent
+```
+
+arm64 and armv7 variants are also published (`…_linux_arm64`, `…_linux_armv7`).
+
+## Build from source
 
 ```bash
 go build -o pdu-agent
-# Or pinned architectures for your rack:
+# Or cross-compile manually:
 GOOS=linux GOARCH=amd64 go build -o dist/pdu-agent-linux-amd64
 GOOS=linux GOARCH=arm64 go build -o dist/pdu-agent-linux-arm64
+# Or run the full goreleaser pipeline locally (requires goreleaser):
+goreleaser release --snapshot --clean
 ```
 
 Static binary, no runtime deps.
-
-## Install (systemd)
-
-```bash
-sudo install -m 755 pdu-agent /usr/local/bin/pdu-agent
-sudo install -m 644 pdu-agent.conf.example /etc/pdu-agent.conf
-sudo $EDITOR /etc/pdu-agent.conf
-sudo install -m 644 systemd/pdu-agent.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now pdu-agent
-journalctl -u pdu-agent -f
-```
 
 ## Testing without an actual PDU
 
