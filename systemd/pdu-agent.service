@@ -6,7 +6,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/pdu-agent
+ExecStart=/usr/bin/pdu-agent
 Restart=on-failure
 RestartSec=5
 User=root

@@ -83,7 +83,7 @@ sudo apk add --allow-untrusted ./pdu-agent_<VERSION>_linux_amd64.apk
 
 ```bash
 curl -L https://github.com/kolobus/pdu-shutdown-agent/releases/latest/download/pdu-agent_<VERSION>_linux_amd64.tar.gz \
-  | sudo tar -xzC /usr/local/bin pdu-agent
+  | sudo tar -xzC /usr/bin pdu-agent
 sudo curl -o /etc/pdu-agent.conf https://raw.githubusercontent.com/kolobus/pdu-shutdown-agent/main/pdu-agent.conf.example
 sudo curl -o /etc/systemd/system/pdu-agent.service https://raw.githubusercontent.com/kolobus/pdu-shutdown-agent/main/systemd/pdu-agent.service
 sudo systemctl daemon-reload && sudo systemctl enable --now pdu-agent
