@@ -32,7 +32,7 @@ Payload:    19 bytes
 ATEN's design assumes a trusted LAN: the shutdown packet is **plaintext broadcast with no auth or nonce**. Anyone who sniffs one packet can replay it and shut down any host running an agent with that MAC. This daemon mitigates somewhat by:
 
 - Filtering on the PDU's source IP (`pdu_ip` in config).
-- Pinning the listen socket to a specific NIC (`SO_BINDTODEVICE`).
+- Pinning the listen socket to a specific NIC (`SO_BINDTODEVICE`, Linux only — on macOS the socket listens on all interfaces and only the source-IP filter gates traffic).
 
 Best practice: keep management / PDU traffic on a dedicated VLAN.
 
@@ -43,6 +43,7 @@ Single file at `/etc/pdu-agent.conf` (path overridable with `-c`):
 ```ini
 # required
 nic          = eth0                     # NIC to bind to; local MAC for match
+                                        # (typically "en0" on macOS)
 pdu_ip       = 10.42.2.28               # only accept packets from this source IP
 shutdown_cmd = /sbin/shutdown -h now    # runs via `sh -c` when triggered
 ```
@@ -91,6 +92,31 @@ sudo systemctl daemon-reload && sudo systemctl enable --now pdu-agent
 
 arm64 and armv7 variants are also published (`…_linux_arm64`, `…_linux_armv7`).
 
+### macOS (Homebrew)
+
+```bash
+brew install kolobus/tap/pdu-agent
+sudo cp "$(brew --prefix)/etc/pdu-agent.conf.example" "$(brew --prefix)/etc/pdu-agent.conf"
+sudo $EDITOR "$(brew --prefix)/etc/pdu-agent.conf"    # nic is usually en0
+sudo brew services start pdu-agent
+```
+
+Runs as a system `LaunchDaemon` (needs root to invoke `/sbin/shutdown`). Logs land in `$(brew --prefix)/var/log/pdu-agent.log`.
+
+### macOS (raw binary)
+
+A universal (arm64 + amd64) build is published as `pdu-agent_<VERSION>_darwin_all.tar.gz`:
+
+```bash
+curl -L https://github.com/kolobus/pdu-shutdown-agent/releases/latest/download/pdu-agent_<VERSION>_darwin_all.tar.gz | tar -xz
+sudo xattr -d com.apple.quarantine pdu-agent                             # clear Gatekeeper
+sudo install -m 0755 pdu-agent /usr/local/bin/pdu-agent
+sudo cp pdu-agent.conf.example /etc/pdu-agent.conf
+sudo $EDITOR /etc/pdu-agent.conf
+sudo cp launchd/net.fedorov.pdu-agent.plist /Library/LaunchDaemons/
+sudo launchctl load -w /Library/LaunchDaemons/net.fedorov.pdu-agent.plist
+```
+
 ## Build from source
 
 ```bash
@@ -98,6 +124,7 @@ go build -o pdu-agent
 # Or cross-compile manually:
 GOOS=linux GOARCH=amd64 go build -o dist/pdu-agent-linux-amd64
 GOOS=linux GOARCH=arm64 go build -o dist/pdu-agent-linux-arm64
+GOOS=darwin GOARCH=arm64 go build -o dist/pdu-agent-darwin-arm64
 # Or run the full goreleaser pipeline locally (requires goreleaser):
 goreleaser release --snapshot --clean
 ```

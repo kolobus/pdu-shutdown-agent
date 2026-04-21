@@ -14,14 +14,23 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
+      - darwin
     goarch:
       - amd64
       - arm64
       - arm
     goarm:
       - "7"
+    ignore:
+      - goos: darwin
+        goarch: arm
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}}
+
+universal_binaries:
+  - id: pdu-agent
+    replace: true
+    name_template: pdu-agent
 
 archives:
   - id: default
@@ -32,6 +41,7 @@ archives:
       - LICENSE
       - pdu-agent.conf.example
       - systemd/pdu-agent.service
+      - launchd/net.fedorov.pdu-agent.plist
 
 checksum:
   name_template: "SHA256SUMS"
@@ -68,6 +78,47 @@ nfpms:
       postinstall: scripts/postinstall.sh
       preremove: scripts/preremove.sh
       postremove: scripts/postremove.sh
+
+brews:
+  - name: pdu-agent
+    ids:
+      - default
+    repository:
+      owner: kolobus
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "pdu-agent: bump to {{ .Tag }}"
+    directory: Formula
+    homepage: https://github.com/kolobus/pdu-shutdown-agent
+    description: "Host-side agent for the ATEN PE8208G PDU shutdown broadcast."
+    license: MIT
+    install: |
+      bin.install "pdu-agent"
+      etc.install "pdu-agent.conf.example"
+    service: |
+      run [opt_bin/"pdu-agent", "-c", etc/"pdu-agent.conf"]
+      keep_alive true
+      run_type :immediate
+      log_path var/"log/pdu-agent.log"
+      error_log_path var/"log/pdu-agent.log"
+      require_root true
+    caveats: |
+      pdu-agent needs root (to run /sbin/shutdown) and must run as a
+      system-wide LaunchDaemon.
+
+      1. Copy and edit the sample config. The NIC is typically "en0" on macOS:
+           sudo cp #{etc}/pdu-agent.conf.example #{etc}/pdu-agent.conf
+           sudo $EDITOR #{etc}/pdu-agent.conf
+
+      2. Start the daemon:
+           sudo brew services start pdu-agent
+
+      Security note: macOS has no SO_BINDTODEVICE, so the socket listens
+      on all interfaces. The source-IP filter (pdu_ip) is the only gate —
+      keep PDU traffic on a trusted VLAN.
 
 changelog:
   use: git
@@ -112,4 +163,10 @@ release:
     ### Raw binary
     ```bash
     curl -L https://github.com/kolobus/pdu-shutdown-agent/releases/download/{{ .Tag }}/pdu-agent_{{ .Version }}_linux_amd64.tar.gz | sudo tar -xzC /usr/local/bin pdu-agent
+    ```
+
+    ### macOS (Homebrew)
+    ```bash
+    brew install kolobus/tap/pdu-agent
+    sudo brew services start pdu-agent    # see `brew info pdu-agent` for config setup
     ```
